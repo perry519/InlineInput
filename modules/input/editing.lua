@@ -139,6 +139,8 @@ function InlineInput:SelectWordAtIndex(input_box, index)
 		input_box:update_caret()
 	end
 
+	self:ResetCaretBlink(input_box)
+
 	return true, start_index, end_index
 end
 

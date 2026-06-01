@@ -40,6 +40,7 @@ function InlineInput.InputBoxTarget:set_selection(start_index, end_index)
 
 	if text and text.set_selection and type(start_index) == "number" then
 		text:set_selection(start_index, type(end_index) == "number" and end_index or start_index)
+		self.library:ResetCaretBlink(self.input_box)
 	end
 end
 

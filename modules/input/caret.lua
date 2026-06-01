@@ -308,15 +308,36 @@ function InlineInput:StyleCaret(input_box, layer, force_visible)
 	end
 end
 
+function InlineInput:ResetCaretBlink(input_box)
+	if input_unfocused(input_box) then
+		return false
+	end
+
+	local caret = input_box and input_box.caret
+
+	if not caret then
+		return false
+	end
+
+	input_box._inline_input_blink_elapsed = 0
+	input_box._inline_input_blink_alpha_high = true
+
+	if caret.set_visible then
+		caret:set_visible(true)
+	end
+
+	set_caret_alpha(caret, 1)
+
+	return true
+end
+
 function InlineInput:ShowCaret(input_box, layer)
 	if input_unfocused(input_box) then
 		return
 	end
 
-	input_box._inline_input_blink_elapsed = 0
-	input_box._inline_input_blink_alpha_high = true
 	self:StyleCaret(input_box, layer, true)
-	set_caret_alpha(input_box.caret, 1)
+	self:ResetCaretBlink(input_box)
 end
 
 function InlineInput:HideCaret(input_box)
@@ -357,9 +378,7 @@ function InlineInput:UpdateCaretBlink(input_box, dt)
 	end
 
 	if input_box._inline_input_blink_alpha_high == nil then
-		input_box._inline_input_blink_alpha_high = true
-		self:StyleCaret(input_box, nil, true)
-		set_caret_alpha(caret, 1)
+		self:ResetCaretBlink(input_box)
 	end
 
 	local elapsed = (input_box._inline_input_blink_elapsed or 0) + (type(dt) == "number" and dt or 0)
@@ -511,6 +530,7 @@ function InlineInput:SetSelectionToIndex(input_box, index, extend_selection)
 	end
 
 	if current_start == next_start and current_end == next_end then
+		self:ResetCaretBlink(input_box)
 		return true
 	end
 
@@ -519,6 +539,8 @@ function InlineInput:SetSelectionToIndex(input_box, index, extend_selection)
 	if input_box.update_caret then
 		input_box:update_caret()
 	end
+
+	self:ResetCaretBlink(input_box)
 
 	return true
 end
@@ -553,6 +575,8 @@ function InlineInput:ClearInputSelection(input_box)
 	if self.UpdateSelectionHighlight then
 		self:UpdateSelectionHighlight(input_box)
 	end
+
+	self:ResetCaretBlink(input_box)
 
 	return true
 end
@@ -632,6 +656,8 @@ function InlineInput:SetBoxText(input_box, value)
 	if input_box.update_caret then
 		input_box:update_caret()
 	end
+
+	self:ResetCaretBlink(input_box)
 end
 
 function InlineInput:SetPlaceholderText(config, input_box)

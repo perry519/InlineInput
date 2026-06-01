@@ -41,7 +41,9 @@ function InlineInput:PatchInputBoxKeys(input_box, config, node_gui)
 		elseif InlineInput:IsModifierKey(key) then
 			return true
 		elseif InlineInput:IsKey(key, "insert") then
-			return session:paste()
+			local result = session:paste()
+			InlineInput:ResetCaretBlink(self)
+			return result
 		end
 
 		local handled, result = InlineInput:ApplySharedInputCommand(session, self, key, {
@@ -57,21 +59,31 @@ function InlineInput:PatchInputBoxKeys(input_box, config, node_gui)
 		})
 
 		if handled then
+			InlineInput:ResetCaretBlink(self)
 			return result
 		end
 
 		if InlineInput:IsLeftKey(key) then
 			InlineInput:MoveCaret(self, -1, { extend_selection = InlineInput:IsShiftDown() })
 			InlineInput:StartCaretMoveRepeat(config, node_gui, -1)
+			InlineInput:ResetCaretBlink(self)
 			return true
 		elseif InlineInput:IsRightKey(key) then
 			InlineInput:MoveCaret(self, 1, { extend_selection = InlineInput:IsShiftDown() })
 			InlineInput:StartCaretMoveRepeat(config, node_gui, 1)
+			InlineInput:ResetCaretBlink(self)
 			return true
 		end
 
 		if original_search_key_press then
-			return original_search_key_press(self, o, key)
+			local is_text_key = InlineInput:IsTextInputKey(key)
+			local result = original_search_key_press(self, o, key)
+
+			if is_text_key or result then
+				InlineInput:ResetCaretBlink(self)
+			end
+
+			return result or is_text_key
 		end
 	end
 
@@ -93,6 +105,7 @@ function InlineInput:PatchInputBoxKeys(input_box, config, node_gui)
 				return true
 			elseif InlineInput:IsKey(key, "backspace") or InlineInput:IsDeleteKey(key) then
 				InlineInput:ApplySharedInputCommand(session, self, key)
+				InlineInput:ResetCaretBlink(self)
 				return true
 			elseif InlineInput:IsLeftKey(key) or InlineInput:IsRightKey(key) then
 				return true
@@ -101,6 +114,10 @@ function InlineInput:PatchInputBoxKeys(input_box, config, node_gui)
 			self._inline_input_in_key_repeat = true
 			local result = original_update_key_down(self, o, key)
 			self._inline_input_in_key_repeat = nil
+
+			if result then
+				InlineInput:ResetCaretBlink(self)
+			end
 
 			return result
 		end
