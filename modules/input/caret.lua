@@ -17,6 +17,33 @@ function InlineInput:IsInputBoxUnfocused(input_box)
 	return input_unfocused(input_box)
 end
 
+local function set_caret_alpha(caret, alpha)
+	if caret and caret.set_alpha then
+		caret:set_alpha(alpha)
+		return true
+	end
+
+	if not caret or not caret.set_color then
+		return false
+	end
+
+	if caret.color then
+		local ok, color = pcall(caret.color, caret)
+
+		if ok and color and color.with_alpha then
+			caret:set_color(color:with_alpha(alpha))
+			return true
+		end
+	end
+
+	if Color then
+		caret:set_color(Color(alpha, 1, 1, 1))
+		return true
+	end
+
+	return false
+end
+
 local function control_number(control, method, fallback)
 	if control and control[method] then
 		local ok, value = pcall(control[method], control)
@@ -287,8 +314,9 @@ function InlineInput:ShowCaret(input_box, layer)
 	end
 
 	input_box._inline_input_blink_elapsed = 0
-	input_box._inline_input_blink_visible = true
+	input_box._inline_input_blink_alpha_high = true
 	self:StyleCaret(input_box, layer, true)
+	set_caret_alpha(input_box.caret, 1)
 end
 
 function InlineInput:HideCaret(input_box)
@@ -297,7 +325,7 @@ function InlineInput:HideCaret(input_box)
 	end
 
 	input_box._inline_input_blink_elapsed = nil
-	input_box._inline_input_blink_visible = nil
+	input_box._inline_input_blink_alpha_high = nil
 	self:StopNativeCaretBlink(input_box)
 
 	local caret = input_box.caret
@@ -319,7 +347,7 @@ end
 function InlineInput:UpdateCaretBlink(input_box, dt)
 	local caret = input_box and input_box.caret
 
-	if not caret or not caret.set_visible then
+	if not caret then
 		return
 	end
 
@@ -328,17 +356,18 @@ function InlineInput:UpdateCaretBlink(input_box, dt)
 		return
 	end
 
-	if input_box._inline_input_blink_visible == nil then
-		input_box._inline_input_blink_visible = true
-		caret:set_visible(true)
+	if input_box._inline_input_blink_alpha_high == nil then
+		input_box._inline_input_blink_alpha_high = true
+		self:StyleCaret(input_box, nil, true)
+		set_caret_alpha(caret, 1)
 	end
 
 	local elapsed = (input_box._inline_input_blink_elapsed or 0) + (type(dt) == "number" and dt or 0)
 
 	while elapsed >= CARET_BLINK_INTERVAL do
 		elapsed = elapsed - CARET_BLINK_INTERVAL
-		input_box._inline_input_blink_visible = not input_box._inline_input_blink_visible
-		caret:set_visible(input_box._inline_input_blink_visible)
+		input_box._inline_input_blink_alpha_high = not input_box._inline_input_blink_alpha_high
+		set_caret_alpha(caret, input_box._inline_input_blink_alpha_high and 1 or 0.05)
 	end
 
 	input_box._inline_input_blink_elapsed = elapsed
