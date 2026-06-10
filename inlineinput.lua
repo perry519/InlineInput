@@ -32,6 +32,7 @@ local modules = {
 	"modules/adapters/shared/model/synthetic_node.lua",
 	"modules/adapters/shared/host_attach.lua",
 	"modules/core/field_config.lua",
+	"modules/input/utf8_text.lua",
 	"modules/input/text_range.lua",
 	"modules/input/keys.lua",
 	"modules/input/caret.lua",

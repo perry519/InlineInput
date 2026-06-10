@@ -267,7 +267,26 @@ local function input_text_padding(library)
 end
 
 function InlineInput:GetInputBoxText(input_box)
-	return input_box and input_box.text and input_box.text.text and input_box.text:text() or nil
+	local value = input_box and input_box.text and input_box.text.text and input_box.text:text() or nil
+
+	if type(value) ~= "string" then
+		return nil
+	end
+
+	local sanitized = TextRange.sanitize(value)
+
+	if sanitized ~= value and input_box.text.set_text then
+		input_box.text:set_text(sanitized)
+
+		if input_box.text.set_selection then
+			local length = text_length(sanitized)
+			input_box._inline_input_caret_index = length
+			input_box._inline_input_selection_base = nil
+			input_box.text:set_selection(length, length)
+		end
+	end
+
+	return sanitized
 end
 
 function InlineInput:CaretColor(input_box)

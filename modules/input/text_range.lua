@@ -3,23 +3,30 @@ local InlineInput = _G.InlineInput
 InlineInput.TextRange = InlineInput.TextRange or {}
 
 local TextRange = InlineInput.TextRange
+local Utf8Text = InlineInput.Utf8Text
+local utf8_sequence_byte_length = Utf8Text.sequence_byte_length
 
 local function text_rect_width(text)
 	return select(3, text.text_rect(text))
 end
 
+TextRange.sanitize = Utf8Text.sanitize
+TextRange.search_normalize = Utf8Text.search_normalize
+
 function TextRange.length(value)
 	value = tostring(value or "")
 
-	if utf8 and utf8.len then
-		local length = utf8.len(value)
+	local value_bytes = string.len(value)
+	local index = 1
+	local length = 0
 
-		if length then
-			return length
-		end
+	while index <= value_bytes do
+		local byte_length = utf8_sequence_byte_length(value, index)
+		index = index + math.max(byte_length, 1)
+		length = length + 1
 	end
 
-	return string.len(value)
+	return length
 end
 
 function TextRange.clamp_index(index, length)
@@ -32,15 +39,25 @@ function TextRange.byte_index_at_slot(value, slot, length)
 	length = length or TextRange.length(value)
 	slot = TextRange.clamp_index(slot, length)
 
+	if slot <= 0 then
+		return 1
+	end
+
 	if slot >= length then
 		return string.len(value) + 1
 	end
 
-	if utf8 and utf8.offset then
-		return utf8.offset(value, slot + 1) or (string.len(value) + 1)
+	local value_bytes = string.len(value)
+	local index = 1
+	local current_slot = 0
+
+	while index <= value_bytes and current_slot < slot do
+		local byte_length = utf8_sequence_byte_length(value, index)
+		index = index + math.max(byte_length, 1)
+		current_slot = current_slot + 1
 	end
 
-	return slot + 1
+	return index
 end
 
 function TextRange.slot_text(value, start_index, end_index, length)
@@ -185,5 +202,7 @@ InlineInput.TargetSelectionRange = TextRange.target_selection_range
 InlineInput.RemoveTextSlots = TextRange.remove_slots
 InlineInput.ReplaceTextSlots = TextRange.replace_slots
 InlineInput.TextRenderWidth = TextRange.render_width
+InlineInput.SanitizeText = TextRange.sanitize
+InlineInput.NormalizeSearchText = TextRange.search_normalize
 
 return InlineInput

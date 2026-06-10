@@ -66,6 +66,23 @@ The usual flow is:
 
 Prefer ids prefixed by your mod id, for example `my_mod:search`. This prevents collisions when several mods use InlineInput.
 
+## Search Normalization
+
+InlineInput sanitizes malformed UTF-8 in input values by default and preserves typed case.
+
+For English-only case-insensitive search, Lua's `string.lower` is enough. Use `NormalizeSearchText` when searched text may contain non-English characters; normalize both the query and row text before comparing:
+
+```lua
+local query = InlineInput.NormalizeSearchText(MyMod.search_text)
+local haystack = InlineInput.NormalizeSearchText(visible_title .. " " .. visible_desc)
+
+if string.find(haystack, query, 1, true) then
+	-- show the row
+end
+```
+
+`NormalizeSearchText` sanitizes invalid UTF-8 and folds common uppercase/lowercase forms, including Cyrillic, Greek, accented Latin, and fullwidth Latin. It does not transliterate or strip accents.
+
 ## Registering An Existing Row
 
 Use this when the menu button row already exists, or when your mod needs to create the row itself. InlineInput binds the input to that BLT row by matching the input `item_id` to the row `id`. Your mod still owns creating the row and wiring its callback; InlineInput owns rendering and editing the text field on that row.

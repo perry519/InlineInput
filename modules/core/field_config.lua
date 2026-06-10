@@ -26,10 +26,22 @@ end
 function InlineInput:NormalizeText(config, value)
 	value = tostring(value or "")
 
+	local text_range = self.TextRange
+
+	if text_range and text_range.sanitize then
+		value = text_range.sanitize(value)
+	end
+
 	local max_length = self:GetMaxLength(config)
 
-	if max_length and string.len(value) > max_length then
-		value = string.sub(value, 1, max_length)
+	if max_length then
+		if text_range and text_range.length and text_range.truncate_slots then
+			if text_range.length(value) > max_length then
+				value = text_range.truncate_slots(value, max_length)
+			end
+		elseif string.len(value) > max_length then
+			value = string.sub(value, 1, max_length)
+		end
 	end
 
 	return value
