@@ -1,5 +1,7 @@
 # InlineInput
 
+![InlineInput](docs/previews/thumb.png)
+
 InlineInput is a reusable PAYDAY 2 BLT helper for text inputs inside mod option menus.
 
 It renders a text field over a BLT menu row and handles focus, typing, caret movement, selection, clipboard shortcuts, Backspace/Delete, Enter, Esc, validation, refreshes, and lifecycle callbacks. Use it when a mod needs a search box, name field, numeric entry, or any other inline text value.
