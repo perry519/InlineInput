@@ -1,10 +1,11 @@
 local InlineInput = _G.InlineInput
 
 function InlineInput:GetInputItemName(config, item, row_item, node_gui)
-	local custom_name = InlineInput:SafeCall(config and config.get_item_name, item, row_item, node_gui, config)
-
-	if custom_name ~= nil then
-		return custom_name
+	if config and config.get_item_name then
+		local custom_name = InlineInput:SafeCall(config.get_item_name, item, row_item, node_gui, config)
+		if custom_name ~= nil then
+			return custom_name
+		end
 	end
 
 	if item and item.parameters then
@@ -60,7 +61,64 @@ function InlineInput:RowMatches(config, row_item, node_gui)
 	return self:ItemIdMatches(item_id, self:GetInputItemName(config, row_item.item, row_item, node_gui))
 end
 
-function InlineInput:FindInputRow(config, node_gui)
+function InlineInput:FindInputRow(config, node_gui, row_lookup)
+	local item_id = config and (config.item_id or config.id)
+	if
+		row_lookup
+		and config
+		and not config.node_match
+		and not config.row_match
+		and not config.get_item_name
+		and (type(item_id) == "string" or type(item_id) == "number")
+	then
+		local rows_by_name = row_lookup.rows
+		if not rows_by_name then
+			rows_by_name = {}
+			row_lookup.rows = rows_by_name
+			row_lookup.next_row = 1
+			row_lookup.positions = row_lookup.persistent and {} or nil
+		end
+		local item_name = tostring(item_id)
+		local row_item = rows_by_name[item_name]
+		local row_index = row_lookup.next_row
+		if not row_item and row_index then
+			local rows = node_gui and node_gui.row_items or {}
+			while true do
+				local candidate = rows[row_index]
+				if not candidate then
+					row_index = nil
+					break
+				end
+				local name = tostring(self:GetInputItemName(nil, candidate.item, candidate, node_gui) or "")
+				if not rows_by_name[name] then
+					rows_by_name[name] = candidate
+					if row_lookup.positions then
+						row_lookup.positions[name] = row_index
+					end
+				end
+				row_index = row_index + 1
+				if name == item_name then
+					break
+				end
+			end
+			row_lookup.next_row = row_index
+			row_item = rows_by_name[item_name]
+		end
+		if row_item and row_lookup.persistent then
+			local position = row_lookup.positions[item_name]
+			if
+				node_gui.row_items[position] ~= row_item
+				or tostring(self:GetInputItemName(nil, row_item.item, row_item, node_gui) or "") ~= item_name
+			then
+				row_lookup.rows = nil
+				return self:FindInputRow(config, node_gui, row_lookup)
+			end
+		end
+		if not row_item or self:IsAlive(row_item.gui_panel) then
+			return row_item
+		end
+	end
+
 	for _, row_item in ipairs(node_gui and node_gui.row_items or {}) do
 		if self:RowMatches(config, row_item, node_gui) and self:IsAlive(row_item.gui_panel) then
 			return row_item
@@ -84,7 +142,7 @@ function InlineInput:HasRegisteredNodeId(node_id)
 	return false
 end
 
-function InlineInput:IsNode(config, node_gui)
+function InlineInput:IsNode(config, node_gui, row_lookup)
 	if not config or not node_gui then
 		return false
 	end
@@ -106,10 +164,10 @@ function InlineInput:IsNode(config, node_gui)
 			return false
 		end
 
-		return self:FindInputRow(config, node_gui) ~= nil
+		return self:FindInputRow(config, node_gui, row_lookup) ~= nil
 	end
 
-	return self:FindInputRow(config, node_gui) ~= nil
+	return self:FindInputRow(config, node_gui, row_lookup) ~= nil
 end
 
 function InlineInput:IsEnabled(config, node_gui, row_item)

@@ -300,6 +300,23 @@ function InlineInput:InstallMenuNodeKeyHooks()
 	end
 end
 
+function InlineInput:WrapMenuNodeUpdate(original_update)
+	return function(node_gui, t, dt, ...)
+		local result
+		if original_update then
+			result = original_update(node_gui, t, dt, ...)
+		elseif MenuNodeGui.super and MenuNodeGui.super.update then
+			result = MenuNodeGui.super.update(node_gui, t, dt, ...)
+		end
+		if InlineInput:MenuNodeGuiUsable(node_gui) then
+			InlineInput:UpdateNode(node_gui)
+			InlineInput:RestorePreservedScrollIndicators(node_gui)
+			InlineInput:UpdateNodeCaretBlinks(node_gui, dt)
+		end
+		return result
+	end
+end
+
 function InlineInput:InstallHooks()
 	self:InstallMenuComponentHooks()
 	self:InstallMenuInputHooks()
@@ -308,6 +325,22 @@ function InlineInput:InstallHooks()
 		self:LogOnce("menu_node_gui_missing", "MenuNodeGui is not available yet")
 		self._hooks_installed = false
 		return false
+	end
+
+	if not _G.MenuNodeGui._inline_input_hooks_installed or _G.MenuNodeGui._inline_input_cached_update_installed then
+		install_method_hook(_G.MenuNodeGui, "_inline_input_cached_update_installed", "update", function(original)
+			return self:WrapMenuNodeUpdate(original)
+		end)
+	end
+	for _, method in ipairs({ "_insert_row_item", "_delete_row_item", "reload_item", "_clear_gui" }) do
+		if type(_G.MenuNodeGui[method]) == "function" then
+			install_method_hook(_G.MenuNodeGui, "_inline_input_row_cache_" .. method, method, function(original)
+				return function(node_gui, ...)
+					InlineInput:InvalidateNodeRows(node_gui)
+					return original(node_gui, ...)
+				end
+			end)
+		end
 	end
 
 	if MenuNodeGui._inline_input_hooks_installed then
@@ -321,25 +354,6 @@ function InlineInput:InstallHooks()
 
 	for _, method in ipairs({ "refresh_gui", "_setup_item_rows", "resolution_changed" }) do
 		MenuNodeGui[method] = sync_after(MenuNodeGui[method])
-	end
-
-	local original_update = MenuNodeGui.update
-	function MenuNodeGui:update(t, dt, ...)
-		local result
-
-		if original_update then
-			result = original_update(self, t, dt, ...)
-		elseif MenuNodeGui.super and MenuNodeGui.super.update then
-			result = MenuNodeGui.super.update(self, t, dt, ...)
-		end
-
-		if InlineInput:MenuNodeGuiUsable(self) then
-			InlineInput:SyncNode(self)
-			InlineInput:RestorePreservedScrollIndicators(self)
-			InlineInput:UpdateNodeCaretBlinks(self, dt)
-		end
-
-		return result
 	end
 
 	local original_close = MenuNodeGui.close
