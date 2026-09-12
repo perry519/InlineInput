@@ -228,9 +228,12 @@ function InlineInput:MouseMoved(node_gui, button, x, y)
 		return true, "arrow"
 	end
 
-	self:SyncNode(node_gui)
-
 	local boxes = node_gui and node_gui[self._node_box_key]
+	if not boxes or not next(boxes) then
+		self:SyncNode(node_gui)
+		boxes = node_gui and node_gui[self._node_box_key]
+	end
+
 	local pointer = "arrow"
 
 	for _, input_box in pairs(boxes or {}) do
