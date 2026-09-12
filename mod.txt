@@ -2,7 +2,7 @@
 	"name": "InlineInput",
 	"description": "Provides reusable inline input fields for BLT menu rows.",
 	"author": "Perry",
-	"version": "1.0.2",
+	"version": "1.1.0",
 	"blt_version": 2,
 	"updates": [
 		{
