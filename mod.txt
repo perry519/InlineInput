@@ -8,7 +8,7 @@
 		{
 			"identifier": "perry519.inline_input",
 			"host": {
-				"meta": "https://raw.githubusercontent.com/perry519/InlineInput/main/update_meta.json"
+				"meta": "https://github.com/perry519/InlineInput/releases/latest/download/update_meta.json"
 			}
 		}
 	],
