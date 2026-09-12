@@ -177,7 +177,7 @@ function InlineInput:StyleText(text, width, layer, scroll_x, override_color, con
 	local selection_color = self:ResolvedSelectionColor(config, input_box)
 	scroll_x = math.max(type(scroll_x) == "number" and scroll_x or 0, 0)
 
-	if text.set_layer then
+	if text.set_layer and control_value(text, "layer") ~= layer then
 		text:set_layer(layer)
 	end
 
@@ -196,12 +196,16 @@ function InlineInput:StyleText(text, width, layer, scroll_x, override_color, con
 		text:set_align("left")
 	end
 
-	if text.set_x then
+	if text.set_x and control_value(text, "x") ~= padding - scroll_x then
 		text:set_x(padding - scroll_x)
 	end
 
 	if text.set_w then
-		text:set_w(math.max(width - padding * 2 + scroll_x, 1))
+		local text_width = math.max(width - padding * 2 + scroll_x, 1)
+
+		if control_value(text, "w") ~= text_width then
+			text:set_w(text_width)
+		end
 	end
 end
 
@@ -211,13 +215,18 @@ function InlineInput:StylePassiveText(text, width, layer, x, input_box, override
 
 	self:StyleText(text, width, layer, 0, override_color, config, input_box)
 	self:ApplyTextFont(text, input_box)
+	x = (type(x) == "number" and x or 0) + padding
 
-	if text and text.set_x then
-		text:set_x((type(x) == "number" and x or 0) + padding)
+	if text and text.set_x and control_value(text, "x") ~= x then
+		text:set_x(x)
 	end
 
 	if text and text.set_w then
-		text:set_w(math.max(width - padding * 2, 1))
+		local text_width = math.max(width - padding * 2, 1)
+
+		if control_value(text, "w") ~= text_width then
+			text:set_w(text_width)
+		end
 	end
 end
 

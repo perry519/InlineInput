@@ -311,7 +311,11 @@ function InlineInput:StyleCaret(input_box, layer, force_visible)
 	end
 
 	if layer and caret.set_layer then
-		caret:set_layer(layer)
+		local ok, current_layer = pcall(caret.layer, caret)
+
+		if not ok or current_layer ~= layer then
+			caret:set_layer(layer)
+		end
 	end
 
 	if force_visible and caret.set_visible then

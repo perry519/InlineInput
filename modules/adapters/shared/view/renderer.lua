@@ -2,6 +2,7 @@ local InlineInput = _G.InlineInput
 local Adapter = InlineInput.Adapter
 
 local set_visible = Adapter.set_visible
+local control_value = Adapter.control_value
 
 local function config_number(config, keys)
 	for _, key in ipairs(keys) do
@@ -109,19 +110,28 @@ function InlineInput:UpdatePassiveText(config, input_box, active)
 	local width = input_panel and input_panel.w and input_panel:w() or input_box._inline_input_panel_width
 	local height = input_panel and input_panel.h and input_panel:h()
 
-	if text.set_y then
+	if text.set_y and control_value(text, "y") ~= 0 then
 		text:set_y(0)
 	end
 
 	local placeholder_color = nil
 
 	if is_placeholder then
-		placeholder_color = active and self:ActivePlaceholderColor(config, input_box) or self:ResolvedPlaceholderColor(config, input_box)
+		placeholder_color = active and self:ActivePlaceholderColor(config, input_box)
+			or self:ResolvedPlaceholderColor(config, input_box)
 	end
 
-	self:StylePassiveText(text, width, active and input_box._inline_input_placeholder_layer or (config.layer or 200) + 4, 0, input_box, placeholder_color, config)
+	self:StylePassiveText(
+		text,
+		width,
+		active and input_box._inline_input_placeholder_layer or (config.layer or 200) + 4,
+		0,
+		input_box,
+		placeholder_color,
+		config
+	)
 
-	if height and text.set_h then
+	if height and text.set_h and control_value(text, "h") ~= height then
 		text:set_h(height)
 	end
 
@@ -159,29 +169,31 @@ function InlineInput:Position(config, node_gui, row_item)
 
 	local panel = input_box.panel
 	local row_panel = row_item and row_item.gui_panel
-	local available_width = row_panel and row_panel.w and row_panel:w() or node_gui.item_panel.w and node_gui.item_panel:w() or panel:w()
+	local available_width = row_panel and row_panel.w and row_panel:w()
+		or node_gui.item_panel.w and node_gui.item_panel:w()
+		or panel:w()
 	local width = input_panel_width(config, available_width)
 	local height = row_panel and row_panel.h and row_panel:h() or panel:h()
 	local x = row_panel and row_panel.x and row_panel:x() or panel:x()
 	local y = row_panel and row_panel.y and row_panel:y() or panel:y()
 
-	if panel.set_layer then
+	if panel.set_layer and control_value(panel, "layer") ~= (config.layer or 200) then
 		panel:set_layer(config.layer or 200)
 	end
 
-	if panel.set_x then
+	if panel.set_x and control_value(panel, "x") ~= x then
 		panel:set_x(x)
 	end
 
-	if panel.set_y then
+	if panel.set_y and control_value(panel, "y") ~= y then
 		panel:set_y(y)
 	end
 
-	if panel.set_w then
+	if panel.set_w and control_value(panel, "w") ~= width then
 		panel:set_w(width)
 	end
 
-	if panel.set_h then
+	if panel.set_h and control_value(panel, "h") ~= height then
 		panel:set_h(height)
 	end
 
@@ -196,7 +208,7 @@ function InlineInput:Position(config, node_gui, row_item)
 		x = x,
 		y = y,
 		width = width,
-		height = height
+		height = height,
 	}
 
 	input_box._inline_input_panel_width = width
@@ -208,7 +220,7 @@ function InlineInput:Position(config, node_gui, row_item)
 	self:ApplyInputBackgroundColor(config, input_box)
 	self:ApplyInputBracketsVisibility(config, input_box)
 	self:ApplyInputTextScroll(input_box, input_box._inline_input_scroll_x)
-	self:UpdatePassiveText(config, input_box)
+	self:UpdatePassiveText(config, input_box, self:IsActiveInputBox(config, node_gui, input_box))
 
 	self:StyleCaret(input_box, layer + 3)
 
